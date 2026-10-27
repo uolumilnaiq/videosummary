@@ -37,6 +37,9 @@ cookies*.txt
 
 # Local editor and agent state
 .DS_Store
+*.swp
+*.swo
+*~
 .idea/
 .vscode/
 .agents/

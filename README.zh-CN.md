@@ -2,13 +2,13 @@
 
 [English](README.md) · [详细使用手册](USAGE.md)
 
-VideoSummary 是一个 Python 命令行工具，可将 YouTube、Bilibili 视频或本地音频转换为带时间戳的文字稿，并可调用 DeepSeek 整理文字稿、生成总结。工具优先使用可用字幕；没有合适字幕时，使用本地 `mlx-whisper` 转录。目前音频转录需要 Apple Silicon Mac。
+VideoSummary 是一个 Python 命令行工具，可将 YouTube、Bilibili 视频或本地音频转换为带时间戳的文字稿，并可调用 DeepSeek 整理文字稿、生成总结。工具优先使用可用字幕；没有合适字幕时，使用本地 `mlx-whisper` 转录。**完整流程仅支持 Apple Silicon Mac 上的 macOS。** 纯字幕路径可能在其他系统运行，但不属于受支持或已验证的平台。
 
 ## 环境要求
 
 - Python 3.11 或更新版本，以及 [uv](https://docs.astral.sh/uv/)。
 - `PATH` 中可用的 `ffmpeg` 和 `ffprobe`；macOS 可运行 `brew install ffmpeg`。
-- 音频转录需要 Apple Silicon；下载 Whisper 权重和处理视频链接需要网络。
+- 受支持的运行环境是 Apple Silicon Mac 上的 macOS；下载 Whisper 权重和处理视频链接需要网络。
 - AI 整理及总结需要 DeepSeek API Key；仅转录不需要。
 
 ## 安装与配置

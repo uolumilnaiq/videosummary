@@ -2,13 +2,13 @@
 
 [简体中文](README.zh-CN.md) · [Detailed usage](USAGE.md)
 
-VideoSummary is a Python command-line tool that turns YouTube and Bilibili videos, or local audio files, into timestamped transcripts and optional DeepSeek-generated notes. It uses available subtitles first and falls back to local `mlx-whisper` transcription. Transcription currently requires a Mac with Apple Silicon.
+VideoSummary is a Python command-line tool that turns YouTube and Bilibili videos, or local audio files, into timestamped transcripts and optional DeepSeek-generated notes. It uses available subtitles first and falls back to local `mlx-whisper` transcription. **The complete workflow is supported only on macOS with Apple Silicon.** Subtitle-only paths may run elsewhere, but other platforms are not supported or tested.
 
 ## Requirements
 
 - Python 3.11 or newer and [uv](https://docs.astral.sh/uv/).
 - `ffmpeg` and `ffprobe` on `PATH` (`brew install ffmpeg` on macOS).
-- Apple Silicon for audio transcription; an internet connection to download Whisper weights and process video URLs.
+- macOS on Apple Silicon for supported use; an internet connection to download Whisper weights and process video URLs.
 - A DeepSeek API key for transcript cleanup and summaries. Transcription alone works without one.
 
 ## Install and configure
