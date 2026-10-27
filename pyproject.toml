@@ -1,0 +1,39 @@
+[project]
+name = "videosummary"
+version = "0.1.0"
+description = "YouTube/Bilibili 视频转文字稿 + DeepSeek AI 总结"
+requires-python = ">=3.11"
+dependencies = [
+    "yt-dlp>=2024.1.1",
+    "tiktoken>=0.7.0",
+    "httpx>=0.27.0",
+    "cryptography>=42.0.0",
+    "tqdm>=4.66.0",
+]
+
+[project.scripts]
+videosummary = "videosummary.main:main"
+videosummary-compare = "videosummary.compare:main"
+videosummary-clear = "videosummary.clear:main"
+videosummary-setup = "videosummary.setup:main"
+videosummary-update = "videosummary.update:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/videosummary"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[dependency-groups]
+dev = [
+    "ruff>=0.15.16",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "pytest-asyncio>=0.23", "pytest-mock>=3.12"]
+macos = ["mlx-whisper>=0.3.0"]

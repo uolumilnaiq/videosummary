@@ -1,0 +1,44 @@
+# Python environments and build artifacts
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+build/
+dist/
+
+# Local credentials, cookies, and runtime data
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.p12
+*.pfx
+*.enc
+cookies*.txt
+*.cookies.txt
+.ghdigest/
+*.sqlite
+*.sqlite3
+*.db
+*.log
+
+# Generated and personal media/results
+/output/
+*.mp3
+*.mp4
+*.m4a
+*.wav
+*.srt
+*.vtt
+
+# Local editor and agent state
+.DS_Store
+.idea/
+.vscode/
+.agents/
+.codex/
+.claude/
