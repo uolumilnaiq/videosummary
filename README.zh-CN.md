@@ -14,7 +14,7 @@ VideoSummary 是一个 Python 命令行工具，可将 YouTube、Bilibili 视频
 ## 安装与配置
 
 ```bash
-git clone <你的仓库地址>
+git clone https://github.com/uolumilnaiq/videosummary.git
 cd videosummary
 uv sync --extra macos
 uv run videosummary-update --model medium
@@ -50,3 +50,7 @@ uv build
 ```
 
 源码位于 `src/videosummary/`，单元测试位于 `tests/`。贡献说明见 [AGENTS.md](AGENTS.md)。
+
+## 许可证
+
+采用 MIT 许可证，详见 [LICENSE](LICENSE)。

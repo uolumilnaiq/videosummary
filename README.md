@@ -14,7 +14,7 @@ VideoSummary is a Python command-line tool that turns YouTube and Bilibili video
 ## Install and configure
 
 ```bash
-git clone <your-repository-url>
+git clone https://github.com/uolumilnaiq/videosummary.git
 cd videosummary
 uv sync --extra macos
 uv run videosummary-update --model medium
@@ -50,3 +50,7 @@ uv build
 ```
 
 Source code is in `src/videosummary/`; unit tests are in `tests/`. See [AGENTS.md](AGENTS.md) for contribution guidance.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
