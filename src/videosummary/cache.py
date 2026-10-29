@@ -10,6 +10,12 @@ CACHE_ROOT = Path.home() / ".cache" / "videosummary"
 _ALLOWED_QUERY = {"v", "p", "bvid"}
 
 
+def cache_source(source: str) -> str:
+    if source.startswith(("http://", "https://")):
+        return source
+    return str(Path(source).expanduser().resolve())
+
+
 def normalize_url(url: str) -> str:
     parsed = urlparse(url)
     host = parsed.netloc
@@ -88,6 +94,19 @@ class CacheDir:
         meta["last_transcript_key"] = key
         meta["last_transcript_params"] = {"model": model, "lang": lang, "vad": vad}
         self._write_meta(meta)
+
+    def has_summary(self, model: str, lang: str, vad: bool) -> bool:
+        key = _transcript_key(model, lang, vad)
+        return (self.path / f"summary_{key}.md").exists()
+
+    def read_summary(self, model: str, lang: str, vad: bool) -> str | None:
+        key = _transcript_key(model, lang, vad)
+        p = self.path / f"summary_{key}.md"
+        return p.read_text(encoding="utf-8") if p.exists() else None
+
+    def write_summary(self, summary: str, model: str, lang: str, vad: bool) -> None:
+        key = _transcript_key(model, lang, vad)
+        self.write_atomic(f"summary_{key}.md", summary)
 
     def init_meta(self, url: str, model: str, lang: str) -> None:
         import yt_dlp as _yt

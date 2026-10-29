@@ -10,12 +10,32 @@ from datetime import datetime
 from pathlib import Path
 import yt_dlp
 from tqdm import tqdm
-from videosummary.cache import CacheDir
+from videosummary.cache import CacheDir, cache_source as _cache_source
 from videosummary.config import get_api_key
 from videosummary.errors import FetchError, SummarizeError
 from videosummary.subtitle import parse_subtitle_to_transcript, passes_quality_probe
 from videosummary.summarizer import DeepSeekSummarizer
 from videosummary.transcriber import MlxWhisperTranscriber
+
+
+def _build_ydl_opts(url: str, args: argparse.Namespace, *, include_format: bool = False) -> dict:
+    opts: dict = {"quiet": True, "no_warnings": True, "socket_timeout": 60}
+    if include_format:
+        opts["format"] = "bestaudio/best"
+    if "bilibili.com" in url or "b23.tv" in url:
+        opts["http_headers"] = {
+            "Referer": "https://www.bilibili.com",
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                          "AppleWebKit/537.36 (KHTML, like Gecko) "
+                          "Chrome/124.0.0.0 Safari/537.36",
+        }
+    else:
+        opts["remote_components"] = ["ejs:github"]
+    if getattr(args, "cookies_from_browser", None):
+        opts["cookiesfrombrowser"] = (args.cookies_from_browser,)
+    if getattr(args, "cookies", None):
+        opts["cookiefile"] = args.cookies
+    return opts
 
 
 def _make_download_hook() -> tuple[callable, callable]:
@@ -232,8 +252,8 @@ async def _process_local(audio_path: Path, args: argparse.Namespace) -> None:
 
         if not args.no_summary:
             source = cleaned or transcript
-            if cache.is_done("summary") and not skip_ai_cache:
-                summary = cache.read("summary.md")
+            if cache.has_summary(_model, _lang, _vad) and not skip_ai_cache:
+                summary = cache.read_summary(_model, _lang, _vad)
                 print("[缓存] 总结命中")
             else:
                 try:
@@ -241,8 +261,7 @@ async def _process_local(audio_path: Path, args: argparse.Namespace) -> None:
                     t0 = time.time()
                     summary = await summarizer.summarize(source)
                     t_summary = time.time() - t0
-                    cache.write_atomic("summary.md", summary)
-                    cache.mark_done("summary")
+                    cache.write_summary(summary, _model, _lang, _vad)
                 except SummarizeError as e:
                     print(f"[警告] 总结失败：{e}", file=sys.stderr)
 
@@ -270,7 +289,7 @@ async def _process_local(audio_path: Path, args: argparse.Namespace) -> None:
 
 async def process_video(url: str, args: argparse.Namespace) -> None:
     # ── 本地文件模式 ──────────────────────────────────────────────────────────
-    local_path = Path(url) if not url.startswith(("http://", "https://")) else None
+    local_path = Path(url).expanduser() if not url.startswith(("http://", "https://")) else None
     if local_path and local_path.exists():
         return await _process_local(local_path, args)
 
@@ -289,18 +308,7 @@ async def process_video(url: str, args: argparse.Namespace) -> None:
         duration_sec = float(cache.read("duration.txt") or "0")
         print(f"[缓存] transcript 命中（model={args.model}, lang={args.lang}, vad={vad_enabled}）")
     else:
-        _is_bilibili = "bilibili.com" in url or "b23.tv" in url
-        ydl_opts: dict = {"quiet": True, "no_warnings": True, "socket_timeout": 60}
-        if _is_bilibili:
-            ydl_opts["http_headers"] = {
-                "Referer": "https://www.bilibili.com",
-                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-            }
-        else:
-            ydl_opts["remote_components"] = ["ejs:github"]
-        ydl_opts["cookiesfrombrowser"] = (args.cookies_from_browser,)
-        if getattr(args, "cookies", None):
-            ydl_opts["cookiefile"] = args.cookies
+        ydl_opts = _build_ydl_opts(url, args)
 
         # ── 视频元信息（字幕检测需要） ────────────────────────────────────
         title = cache.read("title.txt") or ""
@@ -420,8 +428,8 @@ async def process_video(url: str, args: argparse.Namespace) -> None:
         # ── 总结步骤 ──────────────────────────────────────────────────────────
         if not args.no_summary:
             source = cleaned or transcript
-            if cache.is_done("summary") and not skip_ai_cache:
-                summary = cache.read("summary.md")
+            if cache.has_summary(args.model, args.lang, vad_enabled) and not skip_ai_cache:
+                summary = cache.read_summary(args.model, args.lang, vad_enabled)
                 print("[缓存] 总结命中")
             else:
                 try:
@@ -429,8 +437,7 @@ async def process_video(url: str, args: argparse.Namespace) -> None:
                     t0 = time.time()
                     summary = await summarizer.summarize(source)
                     t_summary = time.time() - t0
-                    cache.write_atomic("summary.md", summary)
-                    cache.mark_done("summary")
+                    cache.write_summary(summary, args.model, args.lang, vad_enabled)
                 except SummarizeError as e:
                     print(f"[警告] 总结失败：{e}，仅输出文字稿。", file=sys.stderr)
 
@@ -459,7 +466,7 @@ async def process_video(url: str, args: argparse.Namespace) -> None:
         _print_timing(phases)
 
 
-def main() -> None:
+def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="videosummary", description="YouTube/Bilibili 视频转文字稿 + DeepSeek AI 总结")
     parser.add_argument("url")
     parser.add_argument("--stdout", action="store_true")
@@ -471,7 +478,7 @@ def main() -> None:
     parser.add_argument("--lang", default=None, choices=["zh", "en"],
                         help="转录语言（默认：bilibili→zh，youtube→en）")
     parser.add_argument("--model", default="medium", choices=["tiny", "base", "small", "medium", "large-v3"])
-    parser.add_argument("--cookies-from-browser", default="chrome", metavar="BROWSER", choices=["chrome", "firefox", "safari", "edge"])
+    parser.add_argument("--cookies-from-browser", metavar="BROWSER", choices=["chrome", "firefox", "safari", "edge"])
     parser.add_argument("--cookies", metavar="FILE", help="Netscape 格式 cookies.txt 文件路径")
     parser.add_argument("--initial-prompt", metavar="TEXT")
     parser.add_argument("--part", type=int, metavar="N")
@@ -482,6 +489,11 @@ def main() -> None:
                         help="跳过整理/总结缓存重新生成（转录缓存不受影响）")
     parser.add_argument("--no-vad", action="store_true", help="禁用 VAD 预处理（默认开启）")
     parser.add_argument("--clear-cache", action="store_true")
+    return parser
+
+
+def main() -> None:
+    parser = _build_parser()
     args = parser.parse_args()
 
     # 根据 URL 自动推断默认语言
@@ -497,13 +509,13 @@ def main() -> None:
     )
 
     if args.clear_cache:
-        cache = CacheDir(args.url)
+        cache = CacheDir(_cache_source(args.url))
         shutil.rmtree(cache.path, ignore_errors=True)
         print(f"已清理缓存：{cache.path}")
         return
 
     # 本地文件：直接处理，跳过 yt-dlp
-    _local = Path(args.url) if not args.url.startswith(("http://", "https://")) else None
+    _local = Path(args.url).expanduser() if not args.url.startswith(("http://", "https://")) else None
     if _local:
         if not _local.exists():
             print(f"[错误] 文件不存在：{_local}", file=sys.stderr)
@@ -511,18 +523,7 @@ def main() -> None:
         asyncio.run(process_video(args.url, args))
         return
 
-    _is_bilibili = "bilibili.com" in args.url or "b23.tv" in args.url
-    ydl_opts: dict = {"quiet": True, "no_warnings": True, "socket_timeout": 60, "format": "bestaudio/best"}
-    if _is_bilibili:
-        ydl_opts["http_headers"] = {
-            "Referer": "https://www.bilibili.com",
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-        }
-    else:
-        ydl_opts["remote_components"] = ["ejs:github"]
-    ydl_opts["cookiesfrombrowser"] = (args.cookies_from_browser,)
-    if args.cookies:
-        ydl_opts["cookiefile"] = args.cookies
+    ydl_opts = _build_ydl_opts(args.url, args, include_format=True)
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(args.url, download=False)

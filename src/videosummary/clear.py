@@ -8,7 +8,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from videosummary.cache import CacheDir
+from videosummary.cache import CacheDir, cache_source
 
 
 def main() -> None:
@@ -20,7 +20,7 @@ def main() -> None:
     group = parser.add_mutually_exclusive_group()
     group.add_argument(
         "--transcript", action="store_true",
-        help="仅清理文字稿（transcript_*.txt）和总结（summary.md），保留音频和字幕",
+        help="仅清理文字稿（transcript_*.txt）和参数化总结（summary_*.md），保留音频和字幕",
     )
     group.add_argument(
         "--all", action="store_true",
@@ -33,7 +33,7 @@ def main() -> None:
         print("\n请指定 --transcript 或 --all", file=sys.stderr)
         sys.exit(1)
 
-    cache = CacheDir(args.url)
+    cache = CacheDir(cache_source(args.url))
     if not cache.path.exists():
         print(f"缓存目录不存在：{cache.path}")
         return
@@ -46,7 +46,7 @@ def main() -> None:
 
     # --transcript：只删文字稿和总结，保留音频和字幕
     removed: list[Path] = []
-    for pattern in ("transcript_*.txt", "summary.md", "meta.json"):
+    for pattern in ("transcript_*.txt", "summary_*.md", "summary.md", "meta.json"):
         for f in cache.path.glob(pattern):
             f.unlink()
             removed.append(f)

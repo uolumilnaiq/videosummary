@@ -74,7 +74,7 @@ videosummary <URL|文件路径> [选项]
 | `--redo-ai` | 否 | 仅跳过整理/总结缓存重新生成，**转录缓存不受影响** |
 | `--no-cache` | 否 | 跳过文字稿/整理稿/总结缓存全部重新生成（音频和字幕仍复用） |
 | `--clear-cache` | 否 | 清空该输入的全部缓存后退出 |
-| `--cookies-from-browser` | `chrome` | 从浏览器读取 Cookie：`chrome` `firefox` `safari` `edge` |
+| `--cookies-from-browser` | 无 | 显式从浏览器读取 Cookie：`chrome` `firefox` `safari` `edge` |
 | `--cookies FILE` | 无 | Netscape 格式 cookies.txt 文件路径 |
 | `--part N` | 无 | 多 P 视频：处理第 N P |
 | `--all-parts` | 否 | 多 P 视频：处理全部 P |
@@ -103,7 +103,7 @@ videosummary <URL> --no-cache
 # 用大模型转录，输出到指定目录
 videosummary <URL> --model large-v3 --output ~/Desktop/transcripts
 
-# Bilibili / YouTube 需要登录（默认使用 Chrome Cookie）
+# Bilibili / YouTube 需要登录时显式读取 Chrome Cookie
 videosummary <URL> --cookies-from-browser chrome
 ```
 
@@ -115,7 +115,7 @@ videosummary <URL> --cookies-from-browser chrome
 | `subtitle_<lang>.txt` | URL + 语言 | 有官方字幕时优先使用，跳过转录 |
 | `transcript_<hash>.txt` | URL + model + lang + vad | 参数不同分别缓存 |
 | `cleaned_<hash>.txt` | URL + model + lang + vad | AI 整理结果 |
-| `summary.md` | URL | AI 总结结果 |
+| `summary_<hash>.md` | URL + model + lang + vad | AI 总结结果 |
 
 缓存位置：`~/.cache/videosummary/<url-hash>/`
 
@@ -357,6 +357,6 @@ videosummary ~/recordings/meeting.mp3 --lang zh
 ### Bilibili 需要登录
 
 ```bash
-# 先在 Chrome 登录 Bilibili，再运行（默认已使用 Chrome Cookie）
+# 先在 Chrome 登录 Bilibili，再显式指定读取 Chrome Cookie
 videosummary https://www.bilibili.com/video/BVxxxxx
 ```

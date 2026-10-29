@@ -36,4 +36,9 @@ dev = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "pytest-asyncio>=0.23", "pytest-mock>=3.12"]
-macos = ["mlx-whisper>=0.3.0"]
+macos = [
+    "mlx-whisper>=0.3.0",
+    "numpy>=1.26.0",
+    "scipy>=1.11.0",
+    "silero-vad>=6.2.3",
+]
