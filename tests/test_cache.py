@@ -51,3 +51,14 @@ def test_cache_atomic_write_cleans_tmp_on_error(tmp_path, monkeypatch):
     with pytest.raises(OSError):
         cache.write_atomic("transcript.txt", "content")
     assert not list(cache.path.glob("*.tmp"))
+
+
+def test_summary_cache_isolated_by_transcript_parameters(tmp_path, monkeypatch):
+    monkeypatch.setattr("videosummary.cache.CACHE_ROOT", tmp_path)
+    cache = CacheDir("https://www.youtube.com/watch?v=abc123")
+    cache.write_summary("medium summary", "medium", "zh", True)
+    cache.write_summary("large summary", "large-v3", "zh", True)
+
+    assert cache.read_summary("medium", "zh", True) == "medium summary"
+    assert cache.read_summary("large-v3", "zh", True) == "large summary"
+    assert cache.read_summary("medium", "zh", False) is None

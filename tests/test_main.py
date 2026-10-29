@@ -4,6 +4,7 @@ from videosummary.main import (
     prompt_multi_part,
     sanitize_filename,
 )
+import videosummary.main as main_module
 
 def test_sanitize_filename_removes_reserved_chars():
     result = sanitize_filename('Python: 入门/进阶 "教程" <完整版>')
@@ -40,3 +41,28 @@ def test_partial_success_filename_suffix(tmp_path):
     summary = None
     suffix = ".transcript.md" if (not args.no_summary and summary is None) else ".md"
     assert (sanitize_filename("测试视频") + suffix).endswith(".transcript.md")
+
+
+def test_browser_cookies_are_opt_in():
+    parser = main_module._build_parser()
+    args = parser.parse_args(["https://www.youtube.com/watch?v=public"])
+    assert args.cookies_from_browser is None
+    opts = main_module._build_ydl_opts(args.url, args)
+    assert "cookiesfrombrowser" not in opts
+
+
+def test_explicit_browser_cookie_is_forwarded():
+    parser = main_module._build_parser()
+    args = parser.parse_args([
+        "https://www.youtube.com/watch?v=private",
+        "--cookies-from-browser", "firefox",
+    ])
+    opts = main_module._build_ydl_opts(args.url, args)
+    assert opts["cookiesfrombrowser"] == ("firefox",)
+
+
+def test_local_cache_source_uses_resolved_path(tmp_path, monkeypatch):
+    audio = tmp_path / "recording.mp3"
+    audio.write_bytes(b"audio")
+    monkeypatch.chdir(tmp_path)
+    assert main_module._cache_source("recording.mp3") == str(audio.resolve())
